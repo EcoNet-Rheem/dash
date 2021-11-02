@@ -19,7 +19,8 @@ AppProvider.propTypes = {
     hooks: PropTypes.shape({
         request_pre: PropTypes.func,
         request_post: PropTypes.func,
-        request_refresh_jwt: PropTypes.func
+        request_refresh_jwt: PropTypes.func,
+        request_error: PropTypes.func,
     })
 };
 
@@ -27,7 +28,8 @@ AppProvider.defaultProps = {
     hooks: {
         request_pre: null,
         request_post: null,
-        request_refresh_jwt: null
+        request_refresh_jwt: null, 
+        request_error: null
     }
 };
 

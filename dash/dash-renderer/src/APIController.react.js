@@ -106,7 +106,7 @@ const UnconnectedContainer = props => {
             </DashContext.Provider>
         );
     } else {
-        content = <div className='_dash-loading'>Loading...</div>;
+        content = <div class="kt-splash-screen"><img src="/assets/media/logos/logo-dark.png" alt="Rheem"/><svg class="splash-spinner" viewBox="0 0 50 50"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg></div>
     }
 
     return config && config.ui === true ? (

@@ -32,6 +32,10 @@ import {getCSRFHeader} from '.';
 import {createAction, Action} from 'redux-actions';
 import {addHttpHeaders} from '../actions';
 
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+toast.configure()
 export const addBlockedCallbacks = createAction<IBlockedCallback[]>(
     CallbackActionType.AddBlocked
 );
@@ -363,7 +367,7 @@ function handleServerside(
                 }
             }
 
-            if (status === STATUS.OK) {
+            if (status === STATUS.OK || status === STATUS.PREVENT_UPDATE) {
                 return res.json().then((data: any) => {
                     const {multi, response} = data;
                     if (hooks.request_post) {
@@ -382,12 +386,26 @@ function handleServerside(
                     recordProfile(result);
                     return result;
                 });
+            } else {
+                const message = 'Internal Server Error, Please Refresh the page and try again. \n If Issue persists Contact to Datalake Administrator'
+
+                toast.error(message, {
+                    position: "top-center",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    style: { 'background-color': '#f64e60', 'color': '#fff' },
+                    progress: undefined,
+                });
+                if (hooks.request_error) {
+                    hooks.request_error(payload, {'type': 'toast-alert', 'message': message, 'alertType': 'error'});
+                }
+
+                recordProfile({['dummy']: 'data'})
+                return {['dummy']: 'data'}
             }
-            if (status === STATUS.PREVENT_UPDATE) {
-                recordProfile({});
-                return {};
-            }
-            throw res;
         },
         () => {
             // fetch rejection - this means the request didn't return,

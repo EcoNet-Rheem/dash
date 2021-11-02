@@ -88,9 +88,7 @@ _default_index = """<!DOCTYPE html>
 
 _app_entry = """
 <div id="react-entry-point">
-    <div class="_dash-loading">
-        Loading...
-    </div>
+    <div class="kt-splash-screen"><img src="/assets/media/logos/logo-dark.png" alt="Rheem"/><svg class="splash-spinner" viewBox="0 0 50 50"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg></div>
 </div>
 """
 

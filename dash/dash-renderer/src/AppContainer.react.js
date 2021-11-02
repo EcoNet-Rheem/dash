@@ -14,7 +14,8 @@ class UnconnectedAppContainer extends React.Component {
         if (
             props.hooks.request_pre !== null ||
             props.hooks.request_post !== null ||
-            props.hooks.request_refresh_jwt !== null
+            props.hooks.request_refresh_jwt !== null ||
+            props.hooks.request_error !== null
         ) {
             let hooks = props.hooks;
 
@@ -53,7 +54,7 @@ class UnconnectedAppContainer extends React.Component {
     render() {
         const {config} = this.props;
         if (type(config) === 'Null') {
-            return <div className='_dash-loading'>Loading...</div>;
+            return <div class="kt-splash-screen"><img src="/assets/media/logos/logo-dark.png" alt="Rheem"/><svg class="splash-spinner" viewBox="0 0 50 50"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg></div>
         }
         const {show_undo_redo} = config;
         return (

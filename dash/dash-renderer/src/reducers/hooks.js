@@ -3,6 +3,7 @@ const customHooks = (
         request_pre: null,
         request_post: null,
         request_refresh_jwt: null,
+        request_error: null,
         bear: false
     },
     action

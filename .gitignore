@@ -83,6 +83,7 @@ DESCRIPTION
 NAMESPACE
 digest.json
 VERSION.txt
+**package-lock.json
 
 # vim
 *.swp
