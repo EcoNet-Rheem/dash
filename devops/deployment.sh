@@ -34,8 +34,8 @@ npm install
 
 echo "==> Build Packages"
 npm run build
-python setup.py sdist
-python setup.py install
+python3 setup.py sdist
+python3 setup.py install
 
 echo "==> Go to Dash loacation"
 cd ../build/lib
