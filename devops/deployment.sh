@@ -12,7 +12,7 @@ apt-get -y install npm
 pip3 --version
 
 # Initialize Common Variables
-GIT_BRANCH=git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'
+GIT_BRANCH=`git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'`
 if [ "$GIT_BRANCH" == "main" ];then
 ENV="production"
 elif [ "$GIT_BRANCH" == "develop" ];then
