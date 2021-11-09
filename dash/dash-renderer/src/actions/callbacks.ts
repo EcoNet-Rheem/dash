@@ -367,7 +367,7 @@ function handleServerside(
                 }
             }
 
-            if (status === STATUS.OK || status === STATUS.PREVENT_UPDATE) {
+            if (status === STATUS.OK) {
                 return res.json().then((data: any) => {
                     const {multi, response} = data;
                     if (hooks.request_post) {
@@ -387,24 +387,29 @@ function handleServerside(
                     return result;
                 });
             } else {
-                const message = 'Internal Server Error, Please Refresh the page and try again. \n If Issue persists Contact to Datalake Administrator'
+                if (status !== STATUS.PREVENT_UPDATE) {
+                    const message = 'Internal Server Error, Please Refresh the page and try again. \n If Issue persists Contact to Datalake Administrator'
+                    toast.error(message, {
+                        position: "top-center",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        style: { 'background-color': '#f64e60', 'color': '#fff' },
+                        progress: undefined,
+                    });
+                    if (hooks.request_error) {
+                        hooks.request_error(payload, {'type': 'toast-alert', 'message': message, 'alertType': 'error'});
+                    }
 
-                toast.error(message, {
-                    position: "top-center",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    style: { 'background-color': '#f64e60', 'color': '#fff' },
-                    progress: undefined,
-                });
-                if (hooks.request_error) {
-                    hooks.request_error(payload, {'type': 'toast-alert', 'message': message, 'alertType': 'error'});
+                    recordProfile({['dummy']: 'data'})
+                    return {['dummy']: 'data'}
+                } else {
+                    hooks.request_error(payload, {});
+                    recordProfile({['dummy']: 'data'})
+                    return {['dummy']: 'data'}
                 }
-
-                recordProfile({['dummy']: 'data'})
-                return {['dummy']: 'data'}
             }
         },
         () => {
