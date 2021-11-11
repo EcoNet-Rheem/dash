@@ -6,6 +6,7 @@ on:
       - main
       - staging
       - develop
+      - EDE-673
 
 jobs:
   deploy:
@@ -22,8 +23,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Deploy
-        uses: skx/github-action-tester@master
+        uses: docker://public.ecr.aws/o2j0s4o1/github_action_base:latest
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
         with:
-          script: devops/deployment.sh
+          entrypoint: devops/deployment.sh
