@@ -14,8 +14,8 @@ class UnconnectedAppContainer extends React.Component {
         if (
             props.hooks.request_pre !== null ||
             props.hooks.request_post !== null ||
-            props.hooks.request_refresh_jwt !== null ||
-            props.hooks.request_error !== null
+            props.hooks.callback_resolved !== null ||
+            props.hooks.request_refresh_jwt !== null
         ) {
             let hooks = props.hooks;
 
