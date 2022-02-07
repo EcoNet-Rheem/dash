@@ -536,7 +536,7 @@ export function executeCallback(
                             ),
                             payload
                         };
-                    } catch (error) {
+                    } catch (error: any) {
                         return {error, payload};
                     }
                 }
@@ -559,7 +559,7 @@ export function executeCallback(
                         }
 
                         return {data, payload};
-                    } catch (res) {
+                    } catch (res: any) {
                         lastError = res;
                         if (
                             retry <= MAX_AUTH_RETRIES &&
@@ -602,7 +602,7 @@ export function executeCallback(
 
                 // we reach here when we run out of retries.
                 return {error: lastError, payload: null};
-            } catch (error) {
+            } catch (error: any) {
                 return {error, payload: null};
             }
         };
@@ -613,7 +613,7 @@ export function executeCallback(
         };
 
         return newCb;
-    } catch (error) {
+    } catch (error: any) {
         return {
             ...cb,
             executionPromise: {error, payload: null}
