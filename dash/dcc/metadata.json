@@ -36,18 +36,7 @@
                 "name": "exact",
                 "value": {
                   "label": {
-                    "name": "union",
-                    "value": [
-                      {
-                        "name": "string"
-                      },
-                      {
-                        "name": "number"
-                      },
-                      {
-                        "name": "bool"
-                      }
-                    ],
+                    "name": "node",
                     "description": "The option's label",
                     "required": true
                   },
@@ -1527,15 +1516,7 @@
                 "name": "exact",
                 "value": {
                   "label": {
-                    "name": "union",
-                    "value": [
-                      {
-                        "name": "string"
-                      },
-                      {
-                        "name": "number"
-                      }
-                    ],
+                    "name": "node",
                     "description": "The option's label",
                     "required": true
                   },
@@ -1563,6 +1544,11 @@
                   "title": {
                     "name": "string",
                     "description": "The HTML 'title' attribute for the option. Allows for\ninformation on hover. For more information on this attribute,\nsee https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/title",
+                    "required": false
+                  },
+                  "search": {
+                    "name": "string",
+                    "description": "Optional search value for the option, to use if the label\nis a component or provide a custom search value different\nfrom the label. If no search value and the label is a\ncomponent, the `value` will be used for search.",
                     "required": false
                   }
                 }
@@ -1675,6 +1661,17 @@
         "description": "height of each option. Can be increased when label lengths would wrap around",
         "defaultValue": {
           "value": "35",
+          "computed": false
+        }
+      },
+      "maxHeight": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "height of the options dropdown.",
+        "defaultValue": {
+          "value": "200",
           "computed": false
         }
       },
@@ -2005,6 +2002,17 @@
         "required": false,
         "description": "className of the parent div"
       },
+      "mathjax": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "If true, loads mathjax v3 (tex-svg) into the page and use it in the graph",
+        "defaultValue": {
+          "value": "false",
+          "computed": false
+        }
+      },
       "animate": {
         "type": {
           "name": "bool"
@@ -2044,6 +2052,11 @@
             "editable": {
               "name": "bool",
               "description": "We can edit titles, move annotations, etc - sets all pieces of `edits`\nunless a separate `edits` config item overrides individual parts",
+              "required": false
+            },
+            "editSelection": {
+              "name": "bool",
+              "description": "Enables moving selections",
               "required": false
             },
             "edits": {
@@ -3542,6 +3555,17 @@
         "required": false,
         "description": "Class name of the container element"
       },
+      "mathjax": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "If true, loads mathjax v3 (tex-svg) into the page and use it in the markdown",
+        "defaultValue": {
+          "value": "false",
+          "computed": false
+        }
+      },
       "dangerously_allow_html": {
         "type": {
           "name": "bool"
@@ -3552,6 +3576,13 @@
           "value": "false",
           "computed": false
         }
+      },
+      "link_target": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "A string for the target attribute to use on links (such as \"_blank\")"
       },
       "children": {
         "type": {
@@ -3569,7 +3600,7 @@
           ]
         },
         "required": false,
-        "description": "A markdown string (or array of strings) that adhreres to the CommonMark spec"
+        "description": "A markdown string (or array of strings) that adheres to the CommonMark spec"
       },
       "dedent": {
         "type": {
@@ -3680,18 +3711,7 @@
                 "name": "exact",
                 "value": {
                   "label": {
-                    "name": "union",
-                    "value": [
-                      {
-                        "name": "string"
-                      },
-                      {
-                        "name": "number"
-                      },
-                      {
-                        "name": "bool"
-                      }
-                    ],
+                    "name": "node",
                     "description": "The option's label",
                     "required": true
                   },

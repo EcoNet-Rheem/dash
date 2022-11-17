@@ -37,14 +37,12 @@ module.exports = (env, argv) => {
     const externals = ('externals' in overrides) ? overrides.externals : ({
         react: 'React',
         'react-dom': 'ReactDOM',
-        'plotly.js': 'Plotly',
         'prop-types': 'PropTypes'
     });
 
     return {
         mode,
         entry,
-        target: ['web', 'es5'],
         output: {
             path: path.resolve(__dirname, dashLibraryName),
             filename,

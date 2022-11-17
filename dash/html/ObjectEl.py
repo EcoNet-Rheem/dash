@@ -98,7 +98,8 @@ class ObjectEl(Component):
         the fields in form submits.
 
     - role (string; optional):
-        The ARIA role attribute.
+        Defines an explicit role for an element for use by assistive
+        technologies.
 
     - spellCheck (string; optional):
         Indicates whether spell checking is allowed for the element.
@@ -124,6 +125,11 @@ class ObjectEl(Component):
         legacy attribute, in which case the CSS width property should be
         used instead."""
 
+    _children_props = []
+    _base_nodes = ["children"]
+    _namespace = "dash_html_components"
+    _type = "ObjectEl"
+
     @_explicitize_args
     def __init__(
         self,
@@ -132,7 +138,6 @@ class ObjectEl(Component):
         n_clicks=Component.UNDEFINED,
         n_clicks_timestamp=Component.UNDEFINED,
         key=Component.UNDEFINED,
-        role=Component.UNDEFINED,
         data=Component.UNDEFINED,
         form=Component.UNDEFINED,
         height=Component.UNDEFINED,
@@ -148,6 +153,7 @@ class ObjectEl(Component):
         draggable=Component.UNDEFINED,
         hidden=Component.UNDEFINED,
         lang=Component.UNDEFINED,
+        role=Component.UNDEFINED,
         spellCheck=Component.UNDEFINED,
         style=Component.UNDEFINED,
         tabIndex=Component.UNDEFINED,
@@ -185,8 +191,6 @@ class ObjectEl(Component):
             "useMap",
             "width",
         ]
-        self._type = "ObjectEl"
-        self._namespace = "dash_html_components"
         self._valid_wildcard_attributes = ["data-", "aria-"]
         self.available_properties = [
             "children",
@@ -221,9 +225,7 @@ class ObjectEl(Component):
         self.available_wildcard_properties = ["data-", "aria-"]
         _explicit_args = kwargs.pop("_explicit_args")
         _locals = locals()
-        _locals.update(kwargs)  # For wildcard attrs
+        _locals.update(kwargs)  # For wildcard attrs and excess named props
         args = {k: _locals[k] for k in _explicit_args if k != "children"}
-        for k in []:
-            if k not in args:
-                raise TypeError("Required argument `" + k + "` was not specified.")
+
         super(ObjectEl, self).__init__(children=children, **args)

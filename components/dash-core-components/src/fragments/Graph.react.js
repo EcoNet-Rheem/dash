@@ -1,5 +1,7 @@
+import lazyLoadMathJax from '../utils/LazyLoader/mathjax';
 import React, {Component} from 'react';
-import ResizeDetector from 'react-resize-detector';
+// /build/withPolyfill for IE11 support - https://github.com/maslianok/react-resize-detector/issues/144
+import ResizeDetector from 'react-resize-detector/build/withPolyfill';
 import {
     equals,
     filter,
@@ -82,13 +84,18 @@ const filterEventData = (gd, eventData, event) => {
 
             if (
                 has('curveNumber', fullPoint) &&
-                has('pointNumber', fullPoint) &&
                 has('customdata', data[pointData.curveNumber])
             ) {
-                pointData.customdata =
-                    data[pointData.curveNumber].customdata[
-                        fullPoint.pointNumber
-                    ];
+                if (has('pointNumber', fullPoint)) {
+                    pointData.customdata =
+                        data[pointData.curveNumber].customdata[
+                            fullPoint.pointNumber
+                        ];
+                } else if (has('pointNumbers', fullPoint)) {
+                    pointData.customdata = fullPoint.pointNumbers.map(point => {
+                        return data[pointData.curveNumber].customdata[point];
+                    });
+                }
             }
 
             // specific to histogram. see https://github.com/plotly/plotly.js/pull/2113/
@@ -129,6 +136,7 @@ class PlotlyGraph extends Component {
         this.gd = React.createRef();
         this._hasPlotted = false;
         this._prevGd = null;
+        this._queue = Promise.resolve();
 
         this.bindEvents = this.bindEvents.bind(this);
         this.getConfig = this.getConfig.bind(this);
@@ -137,93 +145,154 @@ class PlotlyGraph extends Component {
         this.getLayoutOverride = this.getLayoutOverride.bind(this);
         this.graphResize = this.graphResize.bind(this);
         this.isResponsive = this.isResponsive.bind(this);
+        this.amendTraces = this.amendTraces.bind(this);
 
         this.state = {override: {}, originals: {}};
     }
 
     plot(props) {
         let {figure, config} = props;
-        const {animate, animation_options, responsive} = props;
+        const {animate, animation_options, responsive, mathjax} = props;
 
         const gd = this.gd.current;
-
         figure = props._dashprivate_transformFigure(figure, gd);
         config = props._dashprivate_transformConfig(config, gd);
+
+        const configClone = this.getConfig(config, responsive);
+        // add typesetMath | not exposed to the dash API
+        configClone.typesetMath = mathjax;
+
+        const figureClone = {
+            data: figure.data,
+            layout: this.getLayout(figure.layout, responsive),
+            frames: figure.frames,
+            config: configClone,
+        };
 
         if (
             animate &&
             this._hasPlotted &&
             figure.data.length === gd.data.length
         ) {
-            return Plotly.animate(gd, figure, animation_options);
+            // in case we've have figure frames,
+            // we need to recreate frames before animation
+            if (figure.frames) {
+                return Plotly.deleteFrames(gd)
+                    .then(() => Plotly.addFrames(gd, figure.frames))
+                    .then(() =>
+                        Plotly.animate(gd, figureClone, animation_options)
+                    );
+            }
+            return Plotly.animate(gd, figureClone, animation_options);
         }
-
-        const configClone = this.getConfig(config, responsive);
-        const layoutClone = this.getLayout(figure.layout, responsive);
 
         gd.classList.add('dash-graph--pending');
 
-        return Plotly.react(gd, {
-            data: figure.data,
-            layout: layoutClone,
-            frames: figure.frames,
-            config: configClone,
-        }).then(() => {
-            const gd = this.gd.current;
+        return lazyLoadMathJax(mathjax)
+            .then(() => {
+                const gd = this.gd.current;
+                return gd && Plotly.react(gd, figureClone);
+            })
+            .then(() => {
+                const gd = this.gd.current;
 
-            // double-check gd hasn't been unmounted
-            if (!gd) {
-                return;
-            }
-
-            gd.classList.remove('dash-graph--pending');
-
-            // in case we've made a new DOM element, transfer events
-            if (this._hasPlotted && gd !== this._prevGd) {
-                if (this._prevGd && this._prevGd.removeAllListeners) {
-                    this._prevGd.removeAllListeners();
-                    Plotly.purge(this._prevGd);
+                // double-check gd hasn't been unmounted
+                if (!gd) {
+                    return;
                 }
-                this._hasPlotted = false;
-            }
 
-            if (!this._hasPlotted) {
-                this.bindEvents();
-                this.graphResize(true);
-                this._hasPlotted = true;
-                this._prevGd = gd;
-            }
-        });
+                gd.classList.remove('dash-graph--pending');
+
+                // in case we've made a new DOM element, transfer events
+                if (this._hasPlotted && gd !== this._prevGd) {
+                    if (this._prevGd && this._prevGd.removeAllListeners) {
+                        this._prevGd.removeAllListeners();
+                        Plotly.purge(this._prevGd);
+                    }
+                    this._hasPlotted = false;
+                }
+
+                if (!this._hasPlotted) {
+                    this.bindEvents();
+                    this.graphResize(true);
+                    this._hasPlotted = true;
+                    this._prevGd = gd;
+                }
+            });
     }
 
-    mergeTraces(props, dataKey, plotlyFnKey) {
-        const clearState = props.clearState;
-        const dataArray = props[dataKey];
+    amendTraces(p, oldProps, newProps) {
+        const {prependData: oldPrepend, extendData: oldExtend} = oldProps;
+        const {prependData: newPrepend, extendData: newExtend} = newProps;
+        const _this = this;
 
-        dataArray.forEach(data => {
-            let updateData, traceIndices, maxPoints;
-            if (Array.isArray(data) && typeof data[0] === 'object') {
-                [updateData, traceIndices, maxPoints] = data;
-            } else {
-                updateData = data;
-            }
+        function mergeTraces(props, dataKey, plotlyFnKey) {
+            const clearState = props.clearState;
+            const dataArray = props[dataKey];
 
-            if (!traceIndices) {
-                function getFirstProp(data) {
-                    return data[Object.keys(data)[0]];
+            let _p = Promise.resolve();
+
+            dataArray.forEach(data => {
+                let updateData, traceIndices, maxPoints;
+                if (Array.isArray(data) && typeof data[0] === 'object') {
+                    [updateData, traceIndices, maxPoints] = data;
+                } else {
+                    updateData = data;
                 }
 
-                function generateIndices(data) {
-                    return Array.from(Array(getFirstProp(data).length).keys());
+                if (!traceIndices) {
+                    function getFirstProp(data) {
+                        return data[Object.keys(data)[0]];
+                    }
+
+                    function generateIndices(data) {
+                        return Array.from(
+                            Array(getFirstProp(data).length).keys()
+                        );
+                    }
+                    traceIndices = generateIndices(updateData);
                 }
-                traceIndices = generateIndices(updateData);
-            }
 
-            const gd = this.gd.current;
-            return Plotly[plotlyFnKey](gd, updateData, traceIndices, maxPoints);
-        });
+                _p = _p.then(() => {
+                    const gd = _this.gd.current;
+                    return (
+                        gd &&
+                        Plotly[plotlyFnKey](
+                            gd,
+                            updateData,
+                            traceIndices,
+                            maxPoints
+                        )
+                    );
+                });
+            });
 
-        clearState(dataKey);
+            return _p.then(() => clearState(dataKey));
+        }
+
+        let modified = false;
+
+        if (newPrepend?.length && oldPrepend !== newPrepend) {
+            modified = true;
+            p = p.then(() =>
+                mergeTraces(newProps, 'prependData', 'prependTraces')
+            );
+        }
+
+        if (newExtend?.length && oldExtend !== newExtend) {
+            modified = true;
+            p = p.then(() =>
+                mergeTraces(newProps, 'extendData', 'extendTraces')
+            );
+        }
+
+        if (modified) {
+            p = p.then(() =>
+                newProps._dashprivate_onFigureModified(newProps.figure)
+            );
+        }
+
+        return p;
     }
 
     getConfig(config, responsive) {
@@ -375,17 +444,8 @@ class PlotlyGraph extends Component {
     }
 
     componentDidMount() {
-        this.plot(this.props);
-        if (this.props.prependData) {
-            this.mergeTraces(this.props, 'prependData', 'prependTraces');
-        }
-        if (this.props.extendData) {
-            this.mergeTraces(this.props, 'extendData', 'extendTraces');
-        }
-
-        if (this.props.prependData?.length || this.props.extendData?.length) {
-            this.props._dashprivate_onFigureModified(this.props.figure);
-        }
+        const p = this.plot(this.props);
+        this._queue = this.amendTraces(p, {}, this.props);
     }
 
     componentWillUnmount() {
@@ -417,32 +477,29 @@ class PlotlyGraph extends Component {
              */
             return;
         }
+
+        let p = this._queue;
+
         if (
+            this.props.mathjax !== nextProps.mathjax ||
             this.props.figure !== nextProps.figure ||
             this.props._dashprivate_transformConfig !==
                 nextProps._dashprivate_transformConfig ||
             this.props._dashprivate_transformFigure !==
                 nextProps._dashprivate_transformFigure
         ) {
-            this.plot(nextProps);
+            p = p.then(() => this.plot(nextProps));
         }
 
-        if (this.props.prependData !== nextProps.prependData) {
-            this.mergeTraces(nextProps, 'prependData', 'prependTraces');
-        }
-
-        if (this.props.extendData !== nextProps.extendData) {
-            this.mergeTraces(nextProps, 'extendData', 'extendTraces');
-        }
-
-        if (this.props.prependData?.length || this.props.extendData?.length) {
-            this.props._dashprivate_onFigureModified(this.props.figure);
-        }
+        this._queue = this.amendTraces(p, this.props, nextProps);
     }
 
     componentDidUpdate(prevProps) {
-        if (prevProps.id !== this.props.id) {
-            this.plot(this.props);
+        if (
+            prevProps.id !== this.props.id ||
+            prevProps.mathjax !== this.props.mathjax
+        ) {
+            this._queue = this._queue.then(() => this.plot(this.props));
         }
     }
 

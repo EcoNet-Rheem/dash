@@ -3,17 +3,36 @@ import pytest
 from .consts import SELENIUM_GRID_DEFAULT
 
 
+# pylint: disable=too-few-public-methods
+class MissingDashTesting:
+    def __init__(self, **kwargs):
+        raise Exception(
+            "dash[testing] was not installed. "
+            "Please install to use the dash testing fixtures."
+        )
+
+
 try:
     from dash.testing.application_runners import (
         ThreadedRunner,
         ProcessRunner,
         RRunner,
         JuliaRunner,
+        MultiProcessRunner,
     )
     from dash.testing.browser import Browser
     from dash.testing.composite import DashComposite, DashRComposite, DashJuliaComposite
 except ImportError:
-    pass
+    # Running pytest without dash[testing] installed.
+    ThreadedRunner = MissingDashTesting
+    ProcessRunner = MissingDashTesting
+    MultiProcessRunner = MissingDashTesting
+    RRunner = MissingDashTesting
+    JuliaRunner = MissingDashTesting
+    Browser = MissingDashTesting
+    DashComposite = MissingDashTesting
+    DashRComposite = MissingDashTesting
+    DashJuliaComposite = MissingDashTesting
 
 
 def pytest_addoption(parser):
@@ -95,33 +114,39 @@ def pytest_runtest_makereport(item, call):  # pylint: disable=unused-argument
 
 
 @pytest.fixture
-def dash_thread_server():
+def dash_thread_server() -> ThreadedRunner:
     """Start a local dash server in a new thread."""
     with ThreadedRunner() as starter:
         yield starter
 
 
 @pytest.fixture
-def dash_process_server():
+def dash_process_server() -> ProcessRunner:
     """Start a Dash server with subprocess.Popen and waitress-serve."""
     with ProcessRunner() as starter:
         yield starter
 
 
 @pytest.fixture
-def dashr_server():
+def dash_multi_process_server() -> MultiProcessRunner:
+    with MultiProcessRunner() as starter:
+        yield starter
+
+
+@pytest.fixture
+def dashr_server() -> RRunner:
     with RRunner() as starter:
         yield starter
 
 
 @pytest.fixture
-def dashjl_server():
+def dashjl_server() -> JuliaRunner:
     with JuliaRunner() as starter:
         yield starter
 
 
 @pytest.fixture
-def dash_br(request, tmpdir):
+def dash_br(request, tmpdir) -> Browser:
     with Browser(
         browser=request.config.getoption("webdriver"),
         remote=request.config.getoption("remote"),
@@ -137,7 +162,7 @@ def dash_br(request, tmpdir):
 
 
 @pytest.fixture
-def dash_duo(request, dash_thread_server, tmpdir):
+def dash_duo(request, dash_thread_server, tmpdir) -> DashComposite:
     with DashComposite(
         dash_thread_server,
         browser=request.config.getoption("webdriver"),
@@ -154,7 +179,24 @@ def dash_duo(request, dash_thread_server, tmpdir):
 
 
 @pytest.fixture
-def dashr(request, dashr_server, tmpdir):
+def dash_duo_mp(request, dash_multi_process_server, tmpdir) -> DashComposite:
+    with DashComposite(
+        dash_multi_process_server,
+        browser=request.config.getoption("webdriver"),
+        remote=request.config.getoption("remote"),
+        remote_url=request.config.getoption("remote_url"),
+        headless=request.config.getoption("headless"),
+        options=request.config.hook.pytest_setup_options(),
+        download_path=tmpdir.mkdir("download").strpath,
+        percy_assets_root=request.config.getoption("percy_assets"),
+        percy_finalize=request.config.getoption("nopercyfinalize"),
+        pause=request.config.getoption("pause"),
+    ) as dc:
+        yield dc
+
+
+@pytest.fixture
+def dashr(request, dashr_server, tmpdir) -> DashRComposite:
     with DashRComposite(
         dashr_server,
         browser=request.config.getoption("webdriver"),
@@ -171,7 +213,7 @@ def dashr(request, dashr_server, tmpdir):
 
 
 @pytest.fixture
-def dashjl(request, dashjl_server, tmpdir):
+def dashjl(request, dashjl_server, tmpdir) -> DashJuliaComposite:
     with DashJuliaComposite(
         dashjl_server,
         browser=request.config.getoption("webdriver"),
